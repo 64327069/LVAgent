@@ -105,7 +105,7 @@ def run_clip4clip(model, video_path, text, sample_idx):
                                                      loose_type=True, eval='myeval')
     return b1b2_logits
 
-model_path = 'CLIP4Clip\clip4clip_checkpoint\mViTT_new\pytorch_model_0.0011.bin.25'
+model_path = '/fs-computility/video/shared/wangzikang/internvl2.5/InternVL/CLIP4Clip/output/mViTT_new/pytorch_model_0.0011.bin.25'
     # 定义 args 字典
 args = {
     'video_dim': 1024,
@@ -144,8 +144,6 @@ def get_max_frame_block(video_path, text_prompt, sample_frame=16, sample_dict = 
             best_clip_score_idx = sorted_frame_idx
             select_block = i
         sample_all_frames.append(sorted_frame_idx)
-    if sample_dict:
-        print('sample_block {} sample {}'.format(sample_dict['block'], select_block))
 
     return best_clip_score_idx, select_block, sample_all_frames
 
@@ -174,37 +172,34 @@ def get_result_first_round(agent_set, anno):
     answer_dict = {}
     sample_dict = {}
     decide_watch, info_prompt, get_mme_answer = get_lvbench_prompt(anno)
-    # TODO: 请更改视频路径
-    video_path = os.path.join('/fs-computility/video/shared/wangzikang/longvideobench/videos', anno['video_path'])
+    video_path = os.path.join('/fs-computility/video/shared/data/LongVideoBench/videos', anno['video_path'])
 
     def process_agent(agent):
         agent_name = agent.get_model_name()
-        watch_ori = anno[agent_name]['watch'][0] if isinstance(anno[agent_name]['watch'], list) else anno[agent_name]['watch']
+        # watch_ori = anno[agent_name]['watch'][0] if isinstance(anno[agent_name]['watch'], list) else anno[agent_name]['watch']
         watch = agent.get_answer(video_path, decide_watch, anno[agent_name]["watch_samp"])
-        print(watch_ori,watch)
         watch = watch[0] if isinstance(watch, list) else watch
-
+        anno[agent_name]['watch'] = watch
         if 'Yes' in watch:
             if 'sample_idx' in anno[agent_name].keys():
                 sample_idx = anno[agent_name]['sample_idx']
             else:
                 sample_idx = get_frame_idx_path(video_path, round=0, sample_frame=16)
             result = agent.get_answer(video_path, get_mme_answer, sample_idx)
-        else:
-            text_prompt_ori = anno[agent_name]['info']
             text_prompt = agent.get_answer(video_path, info_prompt, anno[agent_name]["watch_samp"])
-            print(text_prompt_ori, "\n", text_prompt)
+            anno[agent_name]['info'] = text_prompt
+        else:
+            # text_prompt_ori = anno[agent_name]['info']
+            text_prompt = agent.get_answer(video_path, info_prompt, anno[agent_name]["watch_samp"])
+            anno[agent_name]['info'] = text_prompt
 
             if isinstance(text_prompt, list): text_prompt = text_prompt[0]
             if 'sample_dict' in anno[agent_name].keys():
-                print('ori_samp')
                 best_clip_score_idx, select_block, sample_all_frames = get_max_frame_block(video_path, text_prompt, 16, anno[agent_name]['sample_dict'])
             else:
                 best_clip_score_idx, select_block, sample_all_frames = get_max_frame_block(video_path, text_prompt, sample_frame=16)
-            if select_block == anno[agent_name]['block'] and 'sample_idx' in anno[agent_name].keys():
-                result = agent.get_answer(video_path, get_mme_answer, anno[agent_name]['sample_idx'])
-            else:
-                result = agent.get_answer(video_path, get_mme_answer, sample_all_frames[select_block - 1])
+
+            result = agent.get_answer(video_path, get_mme_answer, sample_all_frames[select_block - 1])
         if isinstance(result, list):
             result = result[0]
         answer_dict[agent_name] = result.split('Answer: ')[-1][0]
@@ -231,8 +226,8 @@ def get_result_second_round(agent_set, anno, history_info=None):
     answer_dict = {}
     sample_dict = {}
     decide_watch, info_prompt, get_mme_answer = get_lvbench_prompt(anno)
-    # TODO: 请更改视频路径
-    video_path = os.path.join('/fs-computility/video/shared/wangzikang/longvideobench/videos', anno['video_path'])
+
+    video_path = os.path.join('/fs-computility/video/shared/data/LongVideoBench/videos', anno['video_path'])
 
     def process_agent(agent):
         agent_name = agent.get_model_name()
@@ -250,10 +245,8 @@ def get_result_second_round(agent_set, anno, history_info=None):
                     best_clip_score_idx, select_block, sample_all_frames = get_max_frame_block(video_path, text_prompt, 16, anno[agent_name]['sample_dict'])
                 else:
                     best_clip_score_idx, select_block, sample_all_frames = get_max_frame_block(video_path, text_prompt, sample_frame=16)
-                if select_block == anno[agent_name]['block']:
-                    result = agent.get_answer(video_path, get_mme_answer, anno[agent_name]['sample_idx'])
-                else:
-                    result = agent.get_answer(video_path, get_mme_answer, sample_all_frames[select_block - 1])
+
+                result = agent.get_answer(video_path, get_mme_answer, sample_all_frames[select_block - 1])
             # if 'sample_dict' in anno[agent_name].keys():
             #     best_clip_score_idx, select_block, sample_all_frames = get_max_frame_block(video_path, text_prompt, 16, anno[agent_name]['sample_dict'])
             else:
@@ -285,8 +278,8 @@ def get_result_second_round(agent_set, anno, history_info=None):
     return answer_set, answer_dict, sample_dict
 # TODO: Add the history info here.
 def reason_process(agent_set, anno, answer_dict, sample_idx=None, history_info=None):
-    # TODO: 请更改视频路径
-    video_path = os.path.join('/fs-computility/video/shared/wangzikang/longvideobench/videos', anno['video_path'])
+    # 解释为什么要选择这个答案。
+    video_path = os.path.join('/fs-computility/video/shared/data/LongVideoBench/videos', anno['video_path'])
     
     ans_dict = {}
 
@@ -389,7 +382,6 @@ def discuss_text_process(agent_set, anno, answer_dict, reason_dict):
             The question is: {anno['question']}, 
             The answer of this model is {answer_dict[agent_name]}, the reason is {reason_dict[agent_name]}.
             The answer of {local_other_agent_name[0]} model is {answer_dict[local_other_agent_name[0]]}, the reason is {reason_dict[local_other_agent_name[0]]}.
-            The intern_8b model perform best. 
             You do not need to explain your answer, just give me scores as your answer following the answer_format.
             Please strictly follow the answer format! The answer_format is:
             {answer_format}
@@ -408,7 +400,7 @@ def discuss_text_process(agent_set, anno, answer_dict, reason_dict):
             """
 
         if agent_name == 'llava_72b':
-            video_path = os.path.join('/fs-computility/video/shared/wangzikang/longvideobench/videos', anno['video_path'])
+            video_path = os.path.join('/fs-computility/video/shared/data/LongVideoBench/videos', anno['video_path'])
             temp = agent.get_answer(video_path, discuss_prompt, anno['llava_72b']['watch_samp'])
         else:
             temp = agent.get_text_answer(discuss_prompt)
@@ -451,14 +443,15 @@ def generate_history_info(agent_set, anno, new_data, lowest_score_key, scores, r
         lowest_score_key, anno['candidates'][ord(answer_dict[lowest_score_key]) - ord('A')], reason_dict[lowest_score_key])
     # 请从这些history中提取出要回答这个问题需要什么关键信息。
     # 给之前的info, 问题，答案
+    
     history_info = {}
     for agent in agent_set:
         agent_name = agent.get_model_name()
         
         history_generate_prompt = lvbench_info_history(anno, all_prompt, anno[agent_name]['info'])
+
         if agent_name == 'llava_72b':
-            # TODO: 更改视频路径
-            video_path = os.path.join('/fs-computility/video/shared/wangzikang/longvideobench/videos', anno['video_path'])
+            video_path = os.path.join('/fs-computility/video/shared/data/LongVideoBench/videos', anno['video_path'])
             history_info[agent_name] = agent.get_answer(video_path, history_generate_prompt, anno['llava_72b']['watch_samp'])
         else:
             history_info[agent_name] = agent.get_text_answer(history_generate_prompt)
@@ -470,7 +463,7 @@ internvl8b = InternVL8B()
 internvl78b = InternVL78B()
 llava72b = Llava72B()
 
-all_anno_path = '/fs-computility/video/shared/wangzikang/Qwen2-VL-main/VideoAgent-master/concat_result/lvbench_all_result.json'
+all_anno_path = '/fs-computility/video/shared/wangzikang/Qwen2-VL-main/VideoAgent-master/concat_result/lvbench_all_result_change.json'
 
 result_anno = json.load(open(all_anno_path))
 all_num = 0
@@ -488,13 +481,11 @@ for kkk, anno in tqdm(enumerate(result_anno), desc="processing items"):
     # if 'On the left side of the screen, there is an image with several pieces of paper' not in anno['question']:
     #     continue
     answer_set, answer_dict, sample_dict = get_result_first_round(agent_set, anno)
-    print('intern78 {}, intern_8 {}, llava_72b {}'.format(anno['intern_78b']['intern_78b'], anno['intern_8b']['intern_8b'], anno['llava_72b']['llava_72b']))
     anno['first_samp'] = sample_dict
     print(chr(ord('A') + anno['correct_choice']))
     if len(answer_set) < 3:
         values = list(answer_dict.values())
         for ans in answer_set:
-            # 统计该值在列表中出现的次数
             if values.count(ans) >= 2:
                 answer_set = ans
                 break
@@ -547,7 +538,15 @@ for kkk, anno in tqdm(enumerate(result_anno), desc="processing items"):
         continue
     
     print(answer_dict, chr(ord('A') + anno['correct_choice']))
+    # if 'second_round' in anno.keys():
+        # try:
+        #     history_info = anno['second_round']['history_info']
+        #     reason_dict = anno['second_round']['reason_dict']
+        #     discuss_dict = discuss_text_process(agent_set, anno, answer_dict, reason_dict)
+        #     anno['second_round']['discuss_dict'] = discuss_dict
+        #     new_data, lowest_score_key, scores = agent_back_process(agent_set, discuss_dict)
 
+        # except:
     reason_dict = reason_process(agent_set, anno, answer_dict)
     discuss_dict = discuss_text_process(agent_set, anno, answer_dict, reason_dict)
     new_data, lowest_score_key, scores = agent_back_process(agent_set, discuss_dict)
@@ -580,12 +579,10 @@ for kkk, anno in tqdm(enumerate(result_anno), desc="processing items"):
     
     print(answer_dict, chr(ord('A') + anno['correct_choice']))
     print("third round, correct{}, all_num {}, {}".format(correct, all_num, correct / all_num))
-    try:
-        with open(all_anno_path, 'w') as f:
-            json.dump(result_anno, f)
-    except:
-        print(anno)
-        anno = ori_anno[kkk]
+    
+    with open(all_anno_path, 'w') as f:
+        json.dump(result_anno, f)
+
 
 with open(all_anno_path, 'w') as f:
     json.dump(result_anno, f)
