@@ -45,6 +45,8 @@ def get_anno(anno_path):
 
 class InternVL8B:
     def __init__(self):
+        # TODO: change path 
+
         path = '/fs-computility/video/shared/wangzikang/internvl2.5/InternVL2_5-8B'
         device_map = self.split_model('InternVL2_5-8B')
         self.model = AutoModel.from_pretrained(
@@ -193,6 +195,7 @@ class InternVL8B:
 
 class InternVL78B:
     def __init__(self):
+        # TODO: change path
         path = '/fs-computility/video/shared/wangzikang/internvl2.5/checkpoint'
         device_map = self.split_model('InternVL2_5-78B')
         self.model = AutoModel.from_pretrained(
@@ -344,6 +347,7 @@ class InternVL78B:
 
 class Llava72B:
     def __init__(self):
+        # TODO: change path
         pretrained = "/fs-computility/video/shared/wangzikang/Qwen2-VL-main/llava_checkpoint"
         model_name = "llava_qwen"
         device_map = "auto"
@@ -389,6 +393,7 @@ class Llava72B:
 
 class Qwen72bAgent:
     def __init__(self):
+        # TODO: change path
         model_path = '/fs-computility/video/shared/wangzikang/Qwen2-VL-main/Qwen2-VL-main/Qwen2-VL-main/Qwen2-VL-main/qwen2_vl_checkpoint'
         self.processor = Qwen2VLProcessor.from_pretrained(model_path)
         self.model = Qwen2VLForConditionalGeneration.from_pretrained(model_path, torch_dtype=torch.bfloat16, attn_implementation="flash_attention_2", device_map="auto")
@@ -446,6 +451,7 @@ class Qwen72bAgent:
 
 
 class Qwen7bAgent:
+    # TODO: change path
     def __init__(self):
         model_path = '/fs-computility/video/shared/wangzikang/Qwen2-VL-main/Qwen2-VL-main/Qwen2-VL-7B-Instruct'
         self.processor = Qwen2VLProcessor.from_pretrained(model_path)
@@ -504,6 +510,7 @@ class Qwen7bAgent:
 
 
 class Qwen2_5_7bAgent:
+    # TODO: change path
     def __init__(self):
         model_path = '/fs-computility/video/shared/wangzikang/Qwen2.5-VL-7B-Instruct'
         self.processor = AutoProcessor.from_pretrained(model_path)
@@ -560,7 +567,7 @@ class Qwen2_5_7bAgent:
         )
         return output_text
 
-
+# TODO: change path
 # class LongVUAgent:
 #     def __init__(self):
 #         self.tokenizer, self.model, self.image_processor, self.context_len = load_pretrained_model_longvu(
@@ -643,30 +650,4 @@ class Qwen2_5_7bAgent:
 
 
     
-    
-if __name__ == "__main__":
 
-    ego_anno = get_anno('/fs-computility/video/shared/wangzikang/Qwen2-VL-main/VideoAgent-master/concat_result/ego_all_result_copy.json')
-    mlvu_anno = get_anno('/fs-computility/video/shared/wangzikang/Qwen2-VL-main/VideoAgent-master/concat_result/mlvu_all_result.json')
-    mme_wosub_anno = get_anno('/fs-computility/video/shared/wangzikang/Qwen2-VL-main/VideoAgent-master/concat_result/mme_wosub_all_result.json')
-    mme_wsub_anno = get_anno('/fs-computility/video/shared/wangzikang/Qwen2-VL-main/VideoAgent-master/concat_result/mme_wsub_all_result.json')
-    lvbench_anno = get_anno('/mnt/workspace/Qwen2-VL-main/VideoAgent-master/concat_result/lvbench_all_result.json')
-
-    video_path_ego = os.path.join('/mnt/workspace/data/egoschema/videos', ego_anno['q_uid'] + '.mp4')
-    video_path_mme = os.path.join('/mnt/workspace/data/videomme/data', mme_wsub_anno['videoID'] + '.mp4')
-    video_path_mlvu = os.path.join('/mnt/workspace/data/videomme/data', mme_wsub_anno['videoID'] + '.mp4')
-    video_path_lvbench = os.path.join('/mnt/workspace/data/longvideobench/videos', lvbench_anno['video_path'])
-
-    qwen7b_model = LongVUAgent()
-    ego_prompt = get_ego_prompt(ego_anno)
-    # mlvu_prompt = get_mlvu_prompt(mlvu_anno)
-    mme_wo_prompt = get_mme_wo_subtitle_prompt(mme_wosub_anno)
-    # mme_sub_prompt = get_mme_subtitle_prompt(mme_wsub_anno)
-    # lvbench_prompt = get_lvbench_prompt(lvbench_anno)
-
-    # print(qwen7b_model.get_answer(ego_prompt, video_path_ego, ))
-    print(qwen7b_model.get_answer(mme_wo_prompt, video_path = video_path_mme, sample_idx =[1,3,5,7,9,14,16,18,20,22,24,26,30,35,36,39]))
-    # print(qwen7b_model.get_answer(mme_sub_prompt, video_path = video_path_mme, multi_image_path=None, sample_idx = mme_wsub_anno['qwen_7b']['sample_idx']))
-    # print(qwen7b_model.get_answer(lvbench_prompt, video_path = video_path_lvbench, multi_image_path=None, sample_idx = lvbench_anno['intern_8b']['sample_idx']))
-    # import ipdb; ipdb.set_trace()
-    # print(qwen7b_model.get_answer(mlvu_prompt, video_path = video_path_mlvu, multi_image_path=None, sample_idx = mlvu_anno['intern_8b']['sample_idx']))
